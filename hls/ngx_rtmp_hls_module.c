@@ -744,7 +744,7 @@ ngx_rtmp_hls_append_sps_pps(ngx_rtmp_session_t *s, ngx_buf_t *out)
                 return NGX_ERROR;
             }
 
-            ngx_rtmp_rmemcpy(&len, &rlen, 2);
+            len=ntohs(rlen);
 
             ngx_log_debug1(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                            "hls: header NAL length: %uz", (size_t) len);
@@ -1920,7 +1920,21 @@ ngx_rtmp_hls_video(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         }
 
         len = 0;
-        ngx_rtmp_rmemcpy(&len, &rlen, nal_bytes);
+
+        switch (nal_bytes) {
+            case 1:
+                len=*(uint8_t*)&rlen;
+                break;
+            case 2:
+                len=ntohs(*(uint16_t*)&rlen);
+                break;
+            case 3:
+                len=n3toh4((u_char*)&rlen);
+                break;
+            case 4:
+                len=ntohl(rlen);
+                 break;
+        };
 
         if (len == 0) {
             continue;
